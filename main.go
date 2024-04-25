@@ -81,7 +81,6 @@ func main() {
 		player := Player{name, isActive, isHoF, position, height, []string{}, []SeasonAverage{}}
 		players[name] = player
 
-
 		playerC.Visit("https://www.basketball-reference.com" + playerProfileLink)
 		fmt.Println(player, playerProfileLink)
 	})
@@ -91,17 +90,19 @@ func main() {
 		fmt.Println("Visiting", r.URL.String())
 	})
 
-
+	
 	playerC.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL.String())
 	})
+
+
 
 	playerC.OnHTML("body", func(e *colly.HTMLElement) {
 		name := e.ChildText("h1")
 
 		teams := []string{}
 		teamsMap := map[string]bool{}
-		table := e.DOM.Find("table#per_game tbody")
+		table := e.DOM.Find("table#playoffs_per_game tbody")
 
 		seasonAverages := []SeasonAverage{}
 
@@ -144,15 +145,13 @@ func main() {
 		c.Visit("https://www.basketball-reference.com/players/" + letter + "/")
 	}
 
-	// c.Visit("https://www.basketball-reference.com/players/a/")
-
 	// Write players to json file
 	jsonPlayers, err := json.Marshal(players)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = os.WriteFile("players.json", jsonPlayers, 0644)
+	err = os.WriteFile("players-playoffs.json", jsonPlayers, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
