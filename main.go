@@ -14,31 +14,31 @@ import (
 )
 
 type Player struct {
-	Name string
-	IsActive bool
-	isHoF bool
-	Position string
-	Height string
-	Teams []string
+	Name           string
+	IsActive       bool
+	isHoF          bool
+	Position       string
+	Height         string
+	Teams          []string
 	SeasonAverages []SeasonAverage
 }
 
 type SeasonAverage struct {
-	Season string
-	Age int
-	Team string
+	Season      string
+	Age         int
+	Team        string
 	GamesPlayed int
-	PtsPerGame float64
-	RebPerGame float64
-	AstPerGame float64
-	StlPerGame float64
-	BlkPerGame float64
-	TOVPerGame float64
-	FGP float64
-	ThreePP float64
-	FTPerGame float64
-	MPG float64
-	FTP float64
+	PtsPerGame  float64
+	RebPerGame  float64
+	AstPerGame  float64
+	StlPerGame  float64
+	BlkPerGame  float64
+	TOVPerGame  float64
+	FGP         float64
+	ThreePP     float64
+	FTPerGame   float64
+	MPG         float64
+	FTP         float64
 }
 
 var LETTERS = []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
@@ -51,16 +51,23 @@ func main() {
 	playerC.Limit(&colly.LimitRule{
 		DomainGlob:  "*basketball-reference.com*",
 		Parallelism: 2,
-		Delay: 2 * time.Second,
+		Delay:       2 * time.Second,
 	})
 
+	// Import players.json
+	jsonFile, err := os.ReadFile("players.json")
+
 	players := map[string]Player{}
+	err = json.Unmarshal(jsonFile, &players)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// On every a element which has href attribute call callback
 	c.OnHTML("tbody tr", func(e *colly.HTMLElement) {
 		name := e.ChildText("th")
 		playerProfileLink := e.ChildAttr("a", "href")
-		position  := e.ChildText("td[data-stat='pos']")
+		position := e.ChildText("td[data-stat='pos']")
 		height := e.ChildText("td[data-stat='height']")
 
 		var isActive bool
@@ -79,9 +86,14 @@ func main() {
 		}
 
 		player := Player{name, isActive, isHoF, position, height, []string{}, []SeasonAverage{}}
-		players[name] = player
 
-		playerC.Visit("https://www.basketball-reference.com" + playerProfileLink)
+		if _, ok := players[name]; !ok {
+			players[name] = player
+		}
+
+		if isActive {
+			playerC.Visit("https://www.basketball-reference.com" + playerProfileLink)
+		}
 		fmt.Println(player, playerProfileLink)
 	})
 
@@ -90,12 +102,9 @@ func main() {
 		fmt.Println("Visiting", r.URL.String())
 	})
 
-	
 	playerC.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL.String())
 	})
-
-
 
 	playerC.OnHTML("body", func(e *colly.HTMLElement) {
 		name := e.ChildText("h1")
@@ -119,15 +128,14 @@ func main() {
 			ptsPerGame, _ := strconv.ParseFloat(s.Find("td[data-stat='pts_per_g']").Text(), 64)
 			rebPerGame, _ := strconv.ParseFloat(s.Find("td[data-stat='trb_per_g']").Text(), 64)
 			astPerGame, _ := strconv.ParseFloat(s.Find("td[data-stat='ast_per_g']").Text(), 64)
-			stlPerGame, _ :=  strconv.ParseFloat(s.Find("td[data-stat='stl_per_g']").Text(), 64)
-			blkPerGame, _ :=  strconv.ParseFloat(s.Find("td[data-stat='blk_per_g']").Text(), 64)
-			tovPerGame, _ :=  strconv.ParseFloat(s.Find("td[data-stat='tov_per_g']").Text(), 64)
-			fgp, _ :=  strconv.ParseFloat(s.Find("td[data-stat='fg_pct']").Text(), 64)
-			threePP, _ :=  strconv.ParseFloat(s.Find("td[data-stat='fg3_pct']").Text(), 64)
-			ftPerGame, _ :=  strconv.ParseFloat(s.Find("td[data-stat='ft_per_g']").Text(), 64)
-			mpg, _ :=  strconv.ParseFloat(s.Find("td[data-stat='mp_per_g']").Text(), 64)
-			ftP, _ :=  strconv.ParseFloat(s.Find("td[data-stat='ft_pct']").Text(), 64)
-
+			stlPerGame, _ := strconv.ParseFloat(s.Find("td[data-stat='stl_per_g']").Text(), 64)
+			blkPerGame, _ := strconv.ParseFloat(s.Find("td[data-stat='blk_per_g']").Text(), 64)
+			tovPerGame, _ := strconv.ParseFloat(s.Find("td[data-stat='tov_per_g']").Text(), 64)
+			fgp, _ := strconv.ParseFloat(s.Find("td[data-stat='fg_pct']").Text(), 64)
+			threePP, _ := strconv.ParseFloat(s.Find("td[data-stat='fg3_pct']").Text(), 64)
+			ftPerGame, _ := strconv.ParseFloat(s.Find("td[data-stat='ft_per_g']").Text(), 64)
+			mpg, _ := strconv.ParseFloat(s.Find("td[data-stat='mp_per_g']").Text(), 64)
+			ftP, _ := strconv.ParseFloat(s.Find("td[data-stat='ft_pct']").Text(), 64)
 
 			seasonAverage := SeasonAverage{season, age, team, gamesPlayed, ptsPerGame, rebPerGame, astPerGame, stlPerGame, blkPerGame, tovPerGame, fgp, threePP, ftPerGame, mpg, ftP}
 			seasonAverages = append(seasonAverages, seasonAverage)
